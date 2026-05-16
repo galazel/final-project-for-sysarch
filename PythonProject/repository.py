@@ -1,46 +1,106 @@
 from sqlalchemy.orm import Session
-import models
-import schemas
+from sqlalchemy import or_
+
+from models import Employee
+from schemas import EmployeeCreate, EmployeePatch
 
 
-def create_employee(db: Session, employee: schemas.EmployeeCreate):
-    db_employee = models.Employee(**employee.model_dump())
+def create_employee(db: Session, employee: EmployeeCreate):
 
-    db.add(db_employee)
+    existing = db.query(Employee).filter(Employee.email == employee.email).first()
+
+    if existing:
+        return None
+
+    new_emp = Employee(
+        first_name=employee.first_name,
+        last_name=employee.last_name,
+        email=employee.email.lower(),
+        department=employee.department
+    )
+
+    db.add(new_emp)
     db.commit()
-    db.refresh(db_employee)
+    db.refresh(new_emp)
 
-    return db_employee
+    return new_emp
 
-def get_employees(db: Session):
-    return db.query(models.Employee).all()
+
+def get_employees(db: Session, search=None, department=None):
+
+    query = db.query(Employee)
+
+    if department:
+        query = query.filter(Employee.department == department)
+
+    if search:
+        query = query.filter(
+            or_(
+                Employee.first_name.ilike(f"%{search}%"),
+                Employee.last_name.ilike(f"%{search}%"),
+                Employee.email.ilike(f"%{search}%"),
+                Employee.department.ilike(f"%{search}%")
+            )
+        )
+
+    return query.all()
+
 
 def get_employee(db: Session, employee_id: int):
-    return db.query(models.Employee)\
-        .filter(models.Employee.id == employee_id)\
-        .first()
+    return db.query(Employee).filter(Employee.id == employee_id).first()
 
-def update_employee(
-    db: Session,
-    employee_id: int,
-    employee: schemas.EmployeeCreate
-):
-    db_employee = get_employee(db, employee_id)
 
-    if db_employee:
-        for key, value in employee.model_dump().items():
-            setattr(db_employee, key, value)
+def update_employee(db: Session, employee_id: int, employee: EmployeeCreate):
 
-        db.commit()
-        db.refresh(db_employee)
+    emp = get_employee(db, employee_id)
 
-    return db_employee
+    if not emp:
+        return None
+
+    emp.first_name = employee.first_name
+    emp.last_name = employee.last_name
+    emp.email = employee.email.lower()
+    emp.department = employee.department
+
+    db.commit()
+    db.refresh(emp)
+
+    return emp
+
+
+def patch_employee(db: Session, employee_id: int, employee: EmployeePatch):
+
+    emp = get_employee(db, employee_id)
+
+    if not emp:
+        return None
+
+    if employee.first_name is not None:
+        emp.first_name = employee.first_name
+
+    if employee.last_name is not None:
+        emp.last_name = employee.last_name
+
+    if employee.email is not None:
+        emp.email = employee.email.lower()
+
+    if employee.department is not None:
+        emp.department = employee.department
+
+    db.commit()
+    db.refresh(emp)
+
+    return emp
+
 
 def delete_employee(db: Session, employee_id: int):
-    db_employee = get_employee(db, employee_id)
 
-    if db_employee:
-        db.delete(db_employee)
-        db.commit()
+    emp = get_employee(db, employee_id)
 
-    return db_employee
+    if not emp:
+        return None
+
+    db.delete(emp)
+    db.commit()
+
+    return emp
