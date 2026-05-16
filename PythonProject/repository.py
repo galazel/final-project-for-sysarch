@@ -16,7 +16,9 @@ def create_employee(db: Session, employee: EmployeeCreate):
         first_name=employee.first_name,
         last_name=employee.last_name,
         email=employee.email.lower(),
-        department=employee.department
+        department=employee.department,
+        salary=employee.salary,
+        hireDate=employee.hire_date
     )
 
     db.add(new_emp)
@@ -61,6 +63,8 @@ def update_employee(db: Session, employee_id: int, employee: EmployeeCreate):
     emp.last_name = employee.last_name
     emp.email = employee.email.lower()
     emp.department = employee.department
+    emp.salary = employee.salary
+    emp.hireDate = employee.hire_date
 
     db.commit()
     db.refresh(emp)
@@ -86,6 +90,12 @@ def patch_employee(db: Session, employee_id: int, employee: EmployeePatch):
 
     if employee.department is not None:
         emp.department = employee.department
+
+    if employee.salary is not None:
+        emp.salary = employee.salary
+
+    if employee.hire_date is not None:
+        emp.hireDate = employee.hire_date
 
     db.commit()
     db.refresh(emp)

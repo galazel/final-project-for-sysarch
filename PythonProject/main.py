@@ -6,7 +6,7 @@ from routes.employee import router as employee_router
 Base.metadata.create_all(bind=engine)
 
 app = FastAPI(
-    title="Employee Management API"
+    title="Company Internal Employee Management System"
 )
 
 app.include_router(employee_router)
@@ -14,5 +14,5 @@ app.include_router(employee_router)
 @app.get("/")
 def home():
     return {
-        "message": "Employee Management System API"
+        "message": "Company Internal Employee Management System"
     }
